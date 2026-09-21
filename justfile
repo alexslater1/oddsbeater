@@ -11,6 +11,10 @@ lint:
 fmt:
     uv run --directory pipeline ruff format
 
+# Check formatting with Ruff.
+fmt-check:
+    uv run --directory pipeline ruff format --check
+
 # Type-check with mypy.
 typecheck:
     uv run --directory pipeline mypy
