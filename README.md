@@ -30,13 +30,16 @@ Each folder is added when its phase starts.
 
 ## Requirements
 
-[uv](https://docs.astral.sh/uv/) — it installs the pinned Python 3.14 for you.
+- [uv](https://docs.astral.sh/uv/) — it installs the pinned Python 3.14 for you.
+- [just](https://just.systems/) — the task runner.
 
 ## Run
 
-Nothing to run yet. This sets up the environment and checks it works:
-
 ```
-uv sync --directory pipeline
-uv run --directory pipeline python -c "import pipeline; print('ok')"
+just setup      # install dependencies
+just lint       # Ruff lint
+just fmt        # Ruff format
+just fmt-check  # Ruff format check, no changes
+just typecheck  # mypy (strict)
+just test       # pytest
 ```
