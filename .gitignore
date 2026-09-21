@@ -1,0 +1,18 @@
+# Secrets
+.env
+
+# Editor
+.vscode/
+
+# Local data lake
+/data/*
+!/data/README.md
+
+# Local planning docs
+/planning/
+
+# Python
+__pycache__/
+.venv/
+
+
