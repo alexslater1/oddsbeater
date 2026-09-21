@@ -36,7 +36,7 @@ Each folder is added when its phase starts.
 ## Run
 
 ```
-just setup      # install dependencies
+just setup      # install dependencies and git hooks
 just lint       # Ruff lint
 just fmt        # Ruff format
 just fmt-check  # Ruff format check, no changes

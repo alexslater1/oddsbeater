@@ -1,6 +1,7 @@
-# Install dependencies
+# Install dependencies and git hooks.
 setup:
     uv sync --directory pipeline
+    uv run --directory pipeline pre-commit install
 
 # Lint with Ruff.
 lint:
