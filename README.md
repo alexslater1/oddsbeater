@@ -1,6 +1,6 @@
 # oddsbeater
 
-Private football betting analysis. 
+Football betting analysis tool. 
 
 The laptop does the heavy work (polite
 scraping, a point-in-time pipeline, ML) and later publishes small static
