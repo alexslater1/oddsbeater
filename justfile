@@ -22,3 +22,6 @@ typecheck:
 # Run the tests.
 test:
     uv run --directory pipeline pytest
+
+# Run all checks and formatting.
+check: lint fmt typecheck test

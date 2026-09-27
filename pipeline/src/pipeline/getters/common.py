@@ -1,9 +1,12 @@
-# fetch() requests the URL with Chrome impersonation,
+# fetch() waits a random delay,
+# then requests the URL with Chrome impersonation,
 # and saves the response to data/raw/{source}/{path}.json
 # as {url, retrieved_at, status, body}.
 
 import json
 import logging
+import random
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -26,12 +29,17 @@ def http_get(url: str) -> tuple[int, str]:
     return response.status_code, response.text
 
 
-def fetch(source: str, path: str, url: str) -> Any:
+def fetch(
+    source: str, path: str, url: str, *, delay: tuple[float, float] = (2, 5)
+) -> Any:
     # If data exists already, get it
     out = RAW_DIR / source / f"{path.strip('/')}.json"
     if out.exists():
         log.info("skip %s: already saved", out)
         return json.loads(out.read_text())["body"]
+
+    # Wait a random number of seconds between delay's two bounds
+    time.sleep(random.uniform(*delay))
 
     # Impersonate Chrome, get the response, and return the body
     status, text = http_get(url)

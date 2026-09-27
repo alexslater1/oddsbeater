@@ -1,6 +1,7 @@
-"""The shared fetch: saving and reading back."""
+"""The shared fetch: saving, reading back and waiting."""
 
 import json
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -43,3 +44,16 @@ def test_fetch_stops_on_block(raw_dir: Path, fake_http: FakeHttp, status: int) -
     with pytest.raises(common.Blocked):
         common.fetch("src", "blocked", "https://example.test/b")
     assert not (raw_dir / "src" / "blocked.json").exists()
+
+
+def test_fetch_waits_before_each_request(
+    raw_dir: Path, fake_http: FakeHttp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waits: list[float] = []
+    monkeypatch.setattr(time, "sleep", waits.append)
+    fake_http(200, "{}")
+
+    common.fetch("src", "w", "https://example.test/w", delay=(4, 8))
+
+    assert len(waits) == 1
+    assert 4 <= waits[0] <= 8
