@@ -3,7 +3,9 @@ name = "pipeline"
 version = "0.0.0"
 description = "Scrapers, parsers and loaders for oddsbeater."
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "curl-cffi>=0.16.3",
+]
 
 [build-system]
 requires = ["hatchling"]
