@@ -30,6 +30,27 @@ def serve_match(pages: dict[str, str], status: str, kickoff: timedelta) -> None:
     pages[f"{sofascore.BASE_URL}/event/1"] = json.dumps({"event": event})
 
 
+def edit_saved_pre_match(
+    raw_dir: Path,
+    *,
+    kickoff: timedelta | None = None,
+    fetched_ago: timedelta = timedelta(0),
+) -> None:
+    """Change the saved pre-match copy: its kickoff, as time from now, and when it
+    was fetched, as time ago."""
+    saved = raw_dir / "sofascore" / "event" / "1" / "pre-match.json"
+    record = json.loads(saved.read_text())
+    if kickoff is not None:
+        start = int((datetime.now(UTC) + kickoff).timestamp())
+        record["body"]["event"]["startTimestamp"] = start
+    fetched = datetime.fromisoformat(record["retrieved_at"]) - fetched_ago
+    record["retrieved_at"] = fetched.isoformat()
+    saved.write_text(json.dumps(record))
+
+
+# endpoint
+
+
 def test_endpoint_reads_directly_if_saved_before(
     raw_dir: Path, pages: dict[str, str]
 ) -> None:
@@ -50,6 +71,9 @@ def test_endpoint_saves_under_its_api_path_if_ok(
     assert (raw_dir / "sofascore" / "event" / "1" / "lineups.json").exists()
 
 
+# event: settled
+
+
 def test_event_saves_every_endpoint_once_settled(
     raw_dir: Path, pages: dict[str, str], sent: list[str]
 ) -> None:
@@ -65,6 +89,13 @@ def test_event_saves_every_endpoint_once_settled(
     assert data["shotmap"] == {"name": "shotmap"}
     for suffix in sofascore.MATCH_ENDPOINTS.values():
         assert (raw_dir / "sofascore" / f"event/1{suffix}.json").exists()
+
+
+def test_event_reads_a_settled_match_back(raw_dir: Path, pages: dict[str, str]) -> None:
+    serve_match(pages, "finished", SETTLED)
+    first = sofascore.event("1")
+    pages.clear()  # any request now fails
+    assert sofascore.event("1") == first
 
 
 def test_event_saves_nothing_if_a_request_fails(
@@ -115,11 +146,7 @@ def test_event_saves_the_details_last(
     assert paths.count(details) == 1
 
 
-def test_event_reads_a_settled_match_back(raw_dir: Path, pages: dict[str, str]) -> None:
-    serve_match(pages, "finished", SETTLED)
-    first = sofascore.event("1")
-    pages.clear()  # any request now fails
-    assert sofascore.event("1") == first
+# event: before kickoff
 
 
 def test_event_saves_pre_match_endpoints_before_kickoff(
@@ -172,12 +199,7 @@ def test_event_updates_pre_match_data_in_a_new_window(
     serve_match(pages, "notstarted", PREDICTED)
     sofascore.event("1")
     # As if it was saved before predicted lineups were out
-    saved = raw_dir / "sofascore" / "event" / "1" / "pre-match.json"
-    record = json.loads(saved.read_text())
-    fetched = datetime.fromisoformat(record["retrieved_at"])
-    fetched -= sofascore.PREDICTED_LINEUPS
-    record["retrieved_at"] = fetched.isoformat()
-    saved.write_text(json.dumps(record))
+    edit_saved_pre_match(raw_dir, fetched_ago=sofascore.PREDICTED_LINEUPS)
     pages[f"{sofascore.BASE_URL}/event/1/lineups"] = '{"confirmed": true}'
 
     assert sofascore.event("1")["lineups"] == {"confirmed": True}
@@ -187,13 +209,7 @@ def test_event_updates_pre_match_data_in_a_new_window(
     assert sofascore.event("1")["lineups"] == {"confirmed": True}
 
 
-def move_saved_kickoff(raw_dir: Path, kickoff: timedelta) -> None:
-    """Change the saved pre-match kickoff to this far from now."""
-    saved = raw_dir / "sofascore" / "event" / "1" / "pre-match.json"
-    record = json.loads(saved.read_text())
-    start = int((datetime.now(UTC) + kickoff).timestamp())
-    record["body"]["event"]["startTimestamp"] = start
-    saved.write_text(json.dumps(record))
+# event: after kickoff
 
 
 def test_event_refuses_without_asking_until_the_saved_kickoff_settles(
@@ -201,7 +217,7 @@ def test_event_refuses_without_asking_until_the_saved_kickoff_settles(
 ) -> None:
     serve_match(pages, "notstarted", timedelta(minutes=30))
     sofascore.event("1")
-    move_saved_kickoff(raw_dir, UNSETTLED)
+    edit_saved_pre_match(raw_dir, kickoff=UNSETTLED)
     pages.clear()  # any request now fails
 
     with pytest.raises(sofascore.NotReady):
@@ -213,7 +229,7 @@ def test_event_asks_again_once_the_saved_kickoff_has_settled(
 ) -> None:
     serve_match(pages, "notstarted", timedelta(minutes=30))
     sofascore.event("1")
-    move_saved_kickoff(raw_dir, SETTLED)
+    edit_saved_pre_match(raw_dir, kickoff=SETTLED)
     serve_match(pages, "finished", SETTLED)
 
     assert list(sofascore.event("1")) == list(sofascore.MATCH_ENDPOINTS)

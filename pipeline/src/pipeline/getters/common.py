@@ -33,6 +33,7 @@ def settled(kickoff: datetime, now: datetime | None = None) -> bool:
 
 
 def location(source: str, path: str) -> Path:
+    """Where a path's record is saved: RAW_DIR/{source}/{path}.json."""
     return RAW_DIR / source / f"{path.strip('/')}.json"
 
 
@@ -43,15 +44,16 @@ def read(source: str, path: str) -> dict[str, Any]:
 
 
 def http_get(url: str) -> tuple[int, str]:
+    """GET a URL as Chrome: its status and text."""
     response = requests.get(url, impersonate="chrome", timeout=60)
     log.info("GET %s -> %d", url, response.status_code)
     return response.status_code, response.text
 
 
 def request(url: str, *, delay: tuple[float, float]) -> dict[str, Any]:
+    """A URL's response as a record, not saved. Stops on 403 or 429."""
     # Wait a random number of seconds between delay's two bounds
     time.sleep(random.uniform(*delay))
-
     # Impersonate Chrome, get the response, and return it as a record
     status, text = http_get(url)
     retrieved_at = datetime.now(UTC).isoformat()
@@ -67,8 +69,7 @@ def request(url: str, *, delay: tuple[float, float]) -> dict[str, Any]:
 
 
 def save(source: str, path: str, record: dict[str, Any]) -> None:
-    # Saved under RAW_DIR/{source}/{path}.json
-    # Write then rename to prevent partial file corruption
+    """Save a record at location(), replacing any there."""
     out = location(source, path)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp")
@@ -79,13 +80,12 @@ def save(source: str, path: str, record: dict[str, Any]) -> None:
 def fetch(
     source: str, path: str, url: str, *, delay: tuple[float, float] = (2, 5)
 ) -> Any:
-    # If data exists already, get it
+    """A path's body: read back if saved, otherwise requested and saved."""
     out = location(source, path)
     if out.exists():
         log.info("skip %s: already saved", out)
         return read(source, path)["body"]
 
-    # Else request it and save it
     record = request(url, delay=delay)
     save(source, path, record)
     return record["body"]
