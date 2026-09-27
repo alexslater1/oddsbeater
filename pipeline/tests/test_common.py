@@ -1,8 +1,9 @@
-"""The shared fetch: saving, reading back and waiting."""
+"""The shared fetch: saving, reading back and waiting. And when a match settles."""
 
 import json
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -57,3 +58,9 @@ def test_fetch_waits_before_each_request(
 
     assert len(waits) == 1
     assert 4 <= waits[0] <= 8
+
+
+def test_settled_waits_settle_after_kickoff() -> None:
+    kickoff = datetime(2026, 9, 20, 15, 0, tzinfo=UTC)
+    assert not common.settled(kickoff, kickoff + common.SETTLE - timedelta(seconds=1))
+    assert common.settled(kickoff, kickoff + common.SETTLE)

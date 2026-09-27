@@ -31,6 +31,20 @@ def pages(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
 
 
 @pytest.fixture
+def sent(pages: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """The URLs requested from pages, in order."""
+    urls: list[str] = []
+    serve = common.http_get
+
+    def http_get(url: str) -> tuple[int, str]:
+        urls.append(url)
+        return serve(url)
+
+    monkeypatch.setattr(common, "http_get", http_get)
+    return urls
+
+
+@pytest.fixture
 def fake_http(monkeypatch: pytest.MonkeyPatch) -> Callable[[int, str], list[str]]:
     """Call with status and text, returns list of URLs. Mocks the network."""
     monkeypatch.setattr(time, "sleep", lambda _: None)
